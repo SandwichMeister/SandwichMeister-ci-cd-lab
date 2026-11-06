@@ -14,27 +14,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Lint HTML
-        id: lint
-        continue-on-error: true
         run: npx --yes htmlhint@1.1.4 index.html
 
       - name: Build image
+        if: ${{ !cancelled() }}
         run: docker build -t site:ci .
 
       - name: Smoke test container
+        if: ${{ !cancelled() }}
         run: |
+          set -x
           docker run -d --name site -p 8080:80 site:ci
           sleep 3
           curl -s http://localhost:8080 > page.html
           grep "SandwichMeister" page.html
           grep "</html>" page.html
           echo "OK"
-
-      - name: Check lint result
-        if: steps.lint.outcome == 'failure'
-        run: |
-          echo "HTML lint failed"
-          exit 1
 
   release:
     needs: ci
